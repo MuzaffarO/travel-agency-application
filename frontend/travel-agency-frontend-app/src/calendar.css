@@ -1,0 +1,74 @@
+.rdrMonth {
+  width: 22.667em;
+  padding: 0;
+}
+
+.rdrWeekDays {
+  border-bottom: 1px solid var(--color-grey-05);
+}
+
+.rdrWeekDay {
+  width: 32px;
+  height: 32px;
+}
+
+.rdrDay.rdrDayDisabled {
+  background-color: transparent;
+}
+
+.rdrDay.rdrDayDisabled .rdrDayNumber span {
+  color: var(--color-grey-06);
+}
+
+.rdrDayNumber span {
+  color: var(--color-blue-09);
+}
+
+.rdrStartEdge, .rdrEndEdge {
+  background-color: var(--color-blue-05);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  left: 6px;
+  z-index: 2;
+}
+
+.rdrDayStartOfWeek .rdrEndEdge, .rdrDayStartOfMonth .rdrEndEdge {
+  left: 6px;
+}
+
+.rdrInRange {
+  background-color: var(--color-blue-02);
+}
+
+.rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+  color: var(--color-blue-09);
+}
+
+.rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber {
+  background: linear-gradient(to right, transparent 50%, var(--color-blue-02) 50%);
+}
+
+.rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber {
+  background: linear-gradient(to left, transparent 50%, var(--color-blue-02) 50%);
+}
+
+/* reset background if one day is startEdge and endEdge */
+.rdrDay .rdrStartEdge.rdrEndEdge ~ .rdrDayNumber {
+  background: none;
+}
+
+.rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
+.rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span {
+  z-index: 3;
+}
+
+
+.rdrDayToday .rdrDayNumber span, .rdrDayNumber span {
+  font-weight: 400;
+}
+
+.rdrDayToday .rdrDayNumber span:after {
+  content: none;
+}
+

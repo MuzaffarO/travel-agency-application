@@ -1,0 +1,13 @@
+US_ID,Functionality,Endpoint/UI,Test_Cases,Positive,Negative,Status,Evidence,Comments
+US_1,User Registration,/auth/sign-up,5,3,2,⏳ FRAMEWORK READY,Basic endpoint available,Backend API framework ready - not fully tested yet
+US_1,User Registration,UI - Registration Form,3,2,1,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented
+US_2,User Login,/auth/sign-in,4,2,2,✅ COMPLETE,TC004-TC006 VERIFIED WITH agent1@agency.com,Backend API - Production verified 100%
+US_2,User Login,UI - Login Form,2,1,1,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented
+US_3,Role Assignment,/auth/sign-in + DynamoDB,3,3,0,✅ COMPLETE,TRAVEL_AGENT role confirmed,Backend API - Role mechanism verified
+US_3,Role Assignment,UI - User Dashboard,2,2,0,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented
+US_4,Tour Selection,/tours/available,6,4,2,✅ COMPLETE,Real data with 16 tours verified,Backend API - Pagination and search working
+US_4,Tour Selection,UI - Tours List,4,3,1,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented
+US_5,Tour Details,/tours/{id},4,3,1,✅ COMPLETE,Tour details API verified,Backend API - Complete tour data confirmed
+US_5,Tour Details,UI - Detail Page,3,2,1,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented
+US_6,Tour Booking,/bookings,5,3,2,⏳ BASIC VERIFIED,Basic endpoint accessible,Backend API - Framework ready for booking implementation
+US_6,Tour Booking,UI - Booking Form,4,3,1,❌ NOT IMPLEMENTED,UI not tested,Frontend UI testing not implemented

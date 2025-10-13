@@ -1,0 +1,194 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;500;600;700;800;900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-blue-01: #f7fdff;
+  --color-blue-02: #edf4fa;
+  --color-blue-03: #e7f9ff;
+  --color-blue-04: #68d8ff;
+  --color-blue-05: #027eac;
+  --color-blue-06: #026c96;
+  --color-blue-07: #015878;
+  --color-blue-09: #0b3857;
+  --color-blue-10: #def6ff;
+  --color-grey-05: #d3e1ed;
+  --color-grey-06: #a2aeb9;
+  --color-grey-07: #677883;
+  --color-green-01: #edffee;
+  --color-green-04: #118819;
+  --color-red-03: #fce9ed;
+  --color-red-04: #b70b0b;
+  --color-white: #ffffff;
+  --color-yellow-01: #fffad3;
+  --font-family-nunito: "Nunito", ui-sans-serif, system-ui, sans-serif;
+
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --shadow-card: 0px 2px 10px 6px #027eac33;
+
+  --max-width-desktop: 1440px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-family-nunito);
+  }
+  input::-ms-reveal,
+  input::-ms-clear,
+  input::-webkit-password-toggle-button,
+  input::-webkit-inner-spin-button,
+  input::-webkit-clear-button {
+    @apply hidden;
+  }
+}
+
+@layer components {
+  .h1 {
+    font-size: 32px;
+    font-weight: var(--font-weight-semibold);
+    line-height: 40px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .h2 {
+    font-size: 24px;
+    font-weight: var(--font-weight-bold);
+    line-height: 40px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .h3 {
+    font-size: 18px;
+    font-weight: var(--font-weight-bold);
+    line-height: 32px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .block-title {
+    font-size: 14px;
+    font-weight: var(--font-weight-light);
+    line-height: 24px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .body {
+    font-size: 14px;
+    font-weight: var(--font-weight-regular);
+    line-height: 24px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .body-bold {
+    font-size: 14px;
+    font-weight: var(--font-weight-extrabold);
+    line-height: 24px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .button-text {
+    font-size: 14px;
+    font-weight: var(--font-weight-bold);
+    line-height: 24px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .caption {
+    font-size: 12px;
+    font-weight: var(--font-weight-regular);
+    line-height: 16px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .navigation {
+    font-size: 24px;
+    font-weight: var(--font-weight-medium);
+    line-height: 32px;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .table-header-cell {
+    position: relative;
+    padding: 24px 36px;
+    border-bottom: 1px solid var(--color-grey-05);
+    background-color: var(--color-blue-01);
+    font-size: 16px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+
+    &:not(:last-child)::before {
+      position: absolute;
+      content: "";
+      right: 0;
+      top: 50%;
+      background-color: var(--color-grey-05);
+      transform: translateY(-50%);
+      width: 2px;
+      height: 65%;
+    }
+  }
+  .table-body-cell {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-grey-05);
+    background-color: var(--color-white);
+  }
+
+  .scrollable {
+    scrollbar-gutter: stable;
+  }
+
+  .scrollable-dynamic {
+    scrollbar-gutter: stable both-edges;
+  }
+
+  .typing-dots {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .typing-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-grey-07);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    animation: bounceDot 1s infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+
+@keyframes bounceDot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}

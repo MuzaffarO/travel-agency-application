@@ -1,0 +1,40 @@
+{
+  "name": "travel-agency-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automation tests for Travel Agency App (API + UI) using Playwright",
+  "scripts": {
+    "test": "playwright test --reporter=list,junit --output=test-results --reporter-options junit-file=test-results/junit.xml",
+    "test:smoke": "playwright test tests/smoke",
+    "test:api": "playwright test tests/api",
+    "test:ui": "playwright test tests/ui",
+    "test:sprint2": "playwright test tests/ui/specs/sprint2-ui-minimal.spec.ts tests/api/sprint2-api-minimal.spec.ts --reporter=list",
+    "test:sprint2:ui": "playwright test tests/ui/specs/sprint2-ui-minimal.spec.ts --reporter=list",
+    "test:sprint2:api": "playwright test tests/api/sprint2-api-minimal.spec.ts --reporter=list",
+    "test:sprint2:headed": "playwright test tests/ui/specs/sprint2-ui-minimal.spec.ts --headed",
+    "test:sprint1-2:ui": "playwright test tests/ui/specs/sprint1-sprint2-ui-complete.spec.ts --project=UI --workers=1 --reporter=list",
+    "test:sprint1-2:ui:headed": "playwright test tests/ui/specs/sprint1-sprint2-ui-complete.spec.ts --project=UI --workers=1 --headed",
+    "test:demo": "npm run test:sprint1-2:ui:headed",
+    "test:ui:auth": "playwright test tests/ui/specs/auth.spec.ts",
+    "test:ui:tours": "playwright test tests/ui/specs/tours.spec.ts",
+    "test:ui:bookings": "playwright test tests/ui/specs/bookings.spec.ts",
+    "test:ui:headed": "playwright test tests/ui --headed",
+    "test:ui:debug": "playwright test tests/ui --debug",
+    "test:ui:chrome": "playwright test tests/ui --project='UI'",
+    "test:smoke:mock": "cross-env USE_MOCKS=true playwright test tests/smoke --grep @smoke",
+    "test:api:mock": "cross-env USE_MOCKS=true playwright test tests/api",
+    "test:all": "playwright test",
+    "test:regression": "playwright test tests/ui tests/api",
+    "report": "playwright show-report",
+    "report:open": "playwright show-report --host=0.0.0.0 --port=9323"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.2",
+    "@types/node": "^24.5.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.6.1"
+  },
+  "dependencies": {
+    "axios": "^1.12.2"
+  }
+}
