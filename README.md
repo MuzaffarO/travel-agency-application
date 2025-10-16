@@ -29,13 +29,6 @@ We follow **Git Flow** to ensure clean development:
 - `release/*` → release preparation branches
 
 ⚠️ All changes must go through **Merge Requests (MRs)**.  
-No direct pushes are allowed to `main` or `develop`.
+No direct pushes are allowed to `master` or `develop`.
 
 ---
-
-## 🚀 Getting Started
-
-### Clone the repository
-```bash
-git clone git@git.epam.com:epm-edai/project-runs/run-15/team-3/serverless/travel-agency-app.git
-cd travel-agency-app
