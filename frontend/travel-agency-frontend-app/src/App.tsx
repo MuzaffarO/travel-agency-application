@@ -18,7 +18,10 @@ import {
 } from "./pages/PrivateRoute.tsx";
 import BookingsPage from "./pages/BookingsPage";
 import ProfilePage from "./pages/ProfilePage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ProfileLayout from "./layouts/ProfileLayout";
+import TravelAgentToursPage from "./pages/TravelAgentToursPage";
+import AdminTravelAgentsPage from "./pages/AdminTravelAgentsPage";
 
 const savedUser = localStorage.getItem("user");
 if (savedUser) {
@@ -67,10 +70,26 @@ function App() {
               </RoleRoute>
             }
           />
+          <Route
+            path="/agent/tours"
+            element={
+              <RoleRoute allowedRoles={["TRAVEL_AGENT", "ADMIN"]}>
+                <TravelAgentToursPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/travel-agents"
+            element={
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <AdminTravelAgentsPage />
+              </RoleRoute>
+            }
+          />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/profile" element={<ProfileLayout />}>
             <Route index element={<ProfilePage />} />
-            <Route path="change-password" element={<ProfilePage />} />
+            <Route path="change-password" element={<ChangePasswordPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

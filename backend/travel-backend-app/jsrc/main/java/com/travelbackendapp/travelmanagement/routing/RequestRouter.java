@@ -8,6 +8,7 @@ import com.travelbackendapp.travelmanagement.controller.UsersController;
 import com.travelbackendapp.travelmanagement.service.AiChatService;
 import com.travelbackendapp.travelmanagement.service.BookingsService;
 import com.travelbackendapp.travelmanagement.service.ToursService;
+import com.travelbackendapp.travelmanagement.service.TravelAgentsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,7 @@ public class RequestRouter {
     private final BookingsService bookingsService;
     private final AiChatService aiChatService;
     private final UsersController usersController;
+    private final TravelAgentsService travelAgentsService;
     private static final Pattern TOUR_DETAILS = Pattern.compile("^/tours/([^/]+)$");
     private static final Pattern TOUR_REVIEWS = Pattern.compile("^/tours/([^/]+)/feedbacks$");
     private static final Pattern BOOKING_ID = Pattern.compile("^/bookings/([^/]+)$");
@@ -31,16 +33,18 @@ public class RequestRouter {
     private static final Pattern USER_NAME = Pattern.compile("^/users/([^/]+)/name$");
     private static final Pattern USER_PASSWORD = Pattern.compile("^/users/([^/]+)/password$");
     private static final Pattern USER_IMAGE = Pattern.compile("^/users/([^/]+)/image$");
+    private static final Pattern TRAVEL_AGENT_EMAIL = Pattern.compile("^/admin/travel-agents/([^/]+)$");
 
 
 
     @Inject
-    public RequestRouter(ToursService toursService, AuthController authController, BookingsService bookingsService, AiChatService aiChatService, UsersController usersController) {
+    public RequestRouter(ToursService toursService, AuthController authController, BookingsService bookingsService, AiChatService aiChatService, UsersController usersController, TravelAgentsService travelAgentsService) {
         this.toursService = toursService;
         this.authController = authController;
         this.bookingsService = bookingsService;
         this.aiChatService = aiChatService;
         this.usersController = usersController;
+        this.travelAgentsService = travelAgentsService;
     }
 
     public APIGatewayProxyResponseEvent route(APIGatewayProxyRequestEvent event, Context ctx) {
@@ -61,6 +65,12 @@ public class RequestRouter {
 
         if ("/tours/available".equals(path)) return toursService.getAvailableTours(event);
         if ("/tours/destinations".equals(path)) return toursService.getDestinations(event);
+        if ("/tours/my".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
+            return toursService.getMyTours(event);
+        }
+        if ("/tours".equals(path) && "POST".equalsIgnoreCase(httpMethod)) {
+            return toursService.createTour(event);
+        }
         if ("/bookings".equals(path) && "POST".equalsIgnoreCase(httpMethod)) {
             return bookingsService.create(event);
         }
@@ -68,7 +78,11 @@ public class RequestRouter {
             return bookingsService.view(event);
         }
         Matcher m = TOUR_DETAILS.matcher(path);
-        if (m.matches()) return toursService.getTourDetails(event, m.group(1));
+        if (m.matches()) {
+            if ("PUT".equalsIgnoreCase(httpMethod)) return toursService.updateTour(event, m.group(1));
+            if ("DELETE".equalsIgnoreCase(httpMethod)) return toursService.deleteTour(event, m.group(1));
+            return toursService.getTourDetails(event, m.group(1));
+        }
 
         Matcher mr = TOUR_REVIEWS.matcher(path);
         if (mr.matches()) {
@@ -143,6 +157,19 @@ public class RequestRouter {
         if (ui.matches() && "PUT".equalsIgnoreCase(httpMethod)) {
             String id = ui.group(1);
             return usersController.updateUserImage(event, ctx, id);
+        }
+
+        // Admin travel agent management routes
+        if ("/admin/travel-agents".equals(path) && "POST".equalsIgnoreCase(httpMethod)) {
+            return travelAgentsService.createTravelAgent(event);
+        }
+        if ("/admin/travel-agents".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
+            return travelAgentsService.listTravelAgents(event);
+        }
+        Matcher ta = TRAVEL_AGENT_EMAIL.matcher(path);
+        if (ta.matches() && "DELETE".equalsIgnoreCase(httpMethod)) {
+            String email = java.net.URLDecoder.decode(ta.group(1), java.nio.charset.StandardCharsets.UTF_8);
+            return travelAgentsService.deleteTravelAgent(event, email);
         }
 
         log.warn("No route matched path={}", path);

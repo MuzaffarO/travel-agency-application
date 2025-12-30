@@ -186,6 +186,19 @@ public class BookingsRepository {
         return out;
     }
 
+    public List<BookingItem> findAll() {
+        var out = new ArrayList<BookingItem>();
+        try {
+            for (Page<BookingItem> page : bookingTable.scan()) {
+                out.addAll(page.items());
+            }
+            log.info("Found {} bookings", out.size());
+        } catch (Exception e) {
+            log.error("Failed to list all bookings", e);
+        }
+        return out;
+    }
+
     public BookingItem getByBookingId(String bookingId) {
         var req = ScanEnhancedRequest.builder()
                 .filterExpression(Expression.builder()

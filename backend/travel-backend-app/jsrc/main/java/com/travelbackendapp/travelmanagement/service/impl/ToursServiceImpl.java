@@ -10,9 +10,13 @@ import com.travelbackendapp.travelmanagement.mapper.ReviewMapper;
 import com.travelbackendapp.travelmanagement.mapper.TourDetailsMapper;
 import com.travelbackendapp.travelmanagement.mapper.TourMapper;
 import com.travelbackendapp.travelmanagement.model.api.request.CreateReviewRequest;
+import com.travelbackendapp.travelmanagement.model.api.request.CreateTourRequest;
 import com.travelbackendapp.travelmanagement.model.api.request.DestinationsSearchRequest;
 import com.travelbackendapp.travelmanagement.model.api.request.ToursSearchRequest;
+import com.travelbackendapp.travelmanagement.model.api.request.UpdateTourRequest;
 import com.travelbackendapp.travelmanagement.model.api.response.*;
+import com.travelbackendapp.travelmanagement.model.entity.TravelAgent;
+import com.travelbackendapp.travelmanagement.repository.TravelAgentRepository;
 import com.travelbackendapp.travelmanagement.model.entity.BookingItem;
 import com.travelbackendapp.travelmanagement.model.entity.ReviewItem;
 import com.travelbackendapp.travelmanagement.model.entity.TourItem;
@@ -28,18 +32,12 @@ import javax.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUserRequest;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUserResponse;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotFoundException;
 
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.travelbackendapp.travelmanagement.model.entity.ReviewItem.todayIso;
 import static com.travelbackendapp.travelmanagement.util.RequestUtils.*;
 
 public class ToursServiceImpl implements ToursService {
@@ -53,13 +51,15 @@ public class ToursServiceImpl implements ToursService {
     private final Validator validator;
     private final CognitoIdentityProviderClient cognitoClient;
     private final String userPoolId;
+    private final TravelAgentRepository agentsRepo;
 
 
     @Inject
     public ToursServiceImpl(ToursRepository repo, ReviewsRepository reviewsRepo,
                             BookingsRepository bookingsRepo, ObjectMapper mapper, Validator validator,
                             CognitoIdentityProviderClient cognitoClient,
-                            @Named("userPoolId") String userPoolId) {
+                            @Named("userPoolId") String userPoolId,
+                            TravelAgentRepository agentsRepo) {
         this.repo = repo;
         this.reviewsRepo = reviewsRepo;
         this.mapper = mapper;
@@ -67,6 +67,7 @@ public class ToursServiceImpl implements ToursService {
         this.validator = validator;
         this.cognitoClient = cognitoClient;
         this.userPoolId = userPoolId;
+        this.agentsRepo = agentsRepo;
     }
 
     @Override
@@ -446,6 +447,259 @@ public class ToursServiceImpl implements ToursService {
         } catch (Exception e) {
             log.warn("fetchUserProfileBySub failed for sub={}: {}", sub, e.toString());
             return new UserProfile(null, null);
+        }
+    }
+
+    @Override
+    public APIGatewayProxyResponseEvent createTour(APIGatewayProxyRequestEvent event) {
+        try {
+            // Auth: require TRAVEL_AGENT or ADMIN role
+            String callerEmail = extractClaim(event, "email");
+            String callerRole = extractClaim(event, "custom:role");
+            
+            if (callerEmail == null || callerEmail.isBlank()) {
+                return HttpResponses.error(mapper, 401, "authentication required");
+            }
+            
+            if (!"TRAVEL_AGENT".equals(callerRole) && !"ADMIN".equals(callerRole)) {
+                return HttpResponses.error(mapper, 403, "only travel agents or admins can create tours");
+            }
+            
+            // Verify agent/admin exists and has proper role
+            TravelAgent agent = agentsRepo.findByEmail(callerEmail);
+            if (agent == null || (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
+                return HttpResponses.error(mapper, 403, "not a registered travel agent or admin");
+            }
+            
+            // Parse and validate request
+            CreateTourRequest body;
+            try {
+                body = mapper.readValue(event.getBody(), CreateTourRequest.class);
+            } catch (Exception e) {
+                return HttpResponses.error(mapper, 400, "invalid json body");
+            }
+            
+            var violations = validator.validate(body);
+            if (!violations.isEmpty()) {
+                String msg = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(", "));
+                return HttpResponses.error(mapper, 400, msg);
+            }
+            
+            // Generate tour ID
+            String tourId = "T-" + System.currentTimeMillis();
+            
+            // Create TourItem
+            TourItem tour = new TourItem();
+            tour.setTourId(tourId);
+            tour.setName(body.name);
+            tour.setDestination(body.destination);
+            tour.setStartDates(body.startDates);
+            if (body.startDates != null && !body.startDates.isEmpty()) {
+                tour.setStartDate(body.startDates.get(0));
+            }
+            tour.setDurations(body.durations);
+            tour.setMealPlans(body.mealPlans);
+            tour.setPriceFrom(body.priceFrom);
+            tour.setPriceByDuration(body.priceByDuration);
+            tour.setMealSupplementsPerDay(body.mealSupplementsPerDay);
+            tour.setTourType(body.tourType);
+            tour.setMaxAdults(body.maxAdults);
+            tour.setMaxChildren(body.maxChildren);
+            tour.setAvailablePackages(body.availablePackages);
+            tour.setImageUrls(body.imageUrls);
+            tour.setSummary(body.summary);
+            tour.setAccommodation(body.accommodation);
+            tour.setHotelName(body.hotelName);
+            tour.setHotelDescription(body.hotelDescription);
+            tour.setCustomDetails(body.customDetails);
+            tour.setFreeCancellation(body.freeCancellation);
+            tour.setFreeCancellationDaysBefore(body.freeCancellationDaysBefore);
+            tour.setAgentEmail(callerEmail);
+            tour.setRating(0.0);
+            tour.setReviews(0);
+            
+            // Save tour
+            repo.save(tour);
+            
+            log.info("Tour created: {} by agent: {}", tourId, callerEmail);
+            return HttpResponses.json(mapper, 201, new CreateTourResponse(tourId, "Tour created successfully"));
+            
+        } catch (Exception e) {
+            log.error("createTour failed", e);
+            return HttpResponses.error(mapper, 500, "internal server error");
+        }
+    }
+
+    @Override
+    public APIGatewayProxyResponseEvent updateTour(APIGatewayProxyRequestEvent event, String tourId) {
+        try {
+            // Auth: require TRAVEL_AGENT or ADMIN role
+            String callerEmail = extractClaim(event, "email");
+            String callerRole = extractClaim(event, "custom:role");
+            
+            if (callerEmail == null || callerEmail.isBlank()) {
+                return HttpResponses.error(mapper, 401, "authentication required");
+            }
+            
+            if (!"TRAVEL_AGENT".equals(callerRole) && !"ADMIN".equals(callerRole)) {
+                return HttpResponses.error(mapper, 403, "only travel agents or admins can update tours");
+            }
+            
+            // Verify agent/admin exists and has proper role
+            TravelAgent agent = agentsRepo.findByEmail(callerEmail);
+            if (agent == null || (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
+                return HttpResponses.error(mapper, 403, "not a registered travel agent or admin");
+            }
+            
+            // Check tour exists
+            Optional<TourItem> tourOpt = repo.getById(tourId);
+            if (tourOpt.isEmpty()) {
+                return HttpResponses.error(mapper, 404, "tour not found");
+            }
+            
+            TourItem tour = tourOpt.get();
+            
+            // Verify agent owns this tour (ADMIN can update any tour)
+            if (!"ADMIN".equals(callerRole)) {
+                if (tour.getAgentEmail() == null || !tour.getAgentEmail().equalsIgnoreCase(callerEmail)) {
+                    return HttpResponses.error(mapper, 403, "you can only update tours you created");
+                }
+            }
+            
+            // Parse and validate request
+            UpdateTourRequest body;
+            try {
+                body = mapper.readValue(event.getBody(), UpdateTourRequest.class);
+            } catch (Exception e) {
+                return HttpResponses.error(mapper, 400, "invalid json body");
+            }
+            
+            // Update fields (only non-null fields)
+            if (body.name != null) tour.setName(body.name);
+            if (body.destination != null) tour.setDestination(body.destination);
+            if (body.startDates != null && !body.startDates.isEmpty()) {
+                tour.setStartDates(body.startDates);
+                tour.setStartDate(body.startDates.get(0));
+            }
+            if (body.durations != null) tour.setDurations(body.durations);
+            if (body.mealPlans != null) tour.setMealPlans(body.mealPlans);
+            if (body.priceFrom != null) tour.setPriceFrom(body.priceFrom);
+            if (body.priceByDuration != null) tour.setPriceByDuration(body.priceByDuration);
+            if (body.mealSupplementsPerDay != null) tour.setMealSupplementsPerDay(body.mealSupplementsPerDay);
+            if (body.tourType != null) tour.setTourType(body.tourType);
+            if (body.maxAdults != null) tour.setMaxAdults(body.maxAdults);
+            if (body.maxChildren != null) tour.setMaxChildren(body.maxChildren);
+            if (body.availablePackages != null) tour.setAvailablePackages(body.availablePackages);
+            if (body.imageUrls != null) tour.setImageUrls(body.imageUrls);
+            if (body.summary != null) tour.setSummary(body.summary);
+            if (body.accommodation != null) tour.setAccommodation(body.accommodation);
+            if (body.hotelName != null) tour.setHotelName(body.hotelName);
+            if (body.hotelDescription != null) tour.setHotelDescription(body.hotelDescription);
+            if (body.customDetails != null) tour.setCustomDetails(body.customDetails);
+            if (body.freeCancellation != null) tour.setFreeCancellation(body.freeCancellation);
+            if (body.freeCancellationDaysBefore != null) tour.setFreeCancellationDaysBefore(body.freeCancellationDaysBefore);
+            
+            // Save updated tour
+            repo.update(tour);
+            
+            log.info("Tour updated: {} by agent: {}", tourId, callerEmail);
+            return HttpResponses.json(mapper, 200, new UpdateTourResponse(tourId, "Tour updated successfully"));
+            
+        } catch (Exception e) {
+            log.error("updateTour failed for tourId={}", tourId, e);
+            return HttpResponses.error(mapper, 500, "internal server error");
+        }
+    }
+
+    @Override
+    public APIGatewayProxyResponseEvent deleteTour(APIGatewayProxyRequestEvent event, String tourId) {
+        try {
+            // Auth: require TRAVEL_AGENT or ADMIN role
+            String callerEmail = extractClaim(event, "email");
+            String callerRole = extractClaim(event, "custom:role");
+            
+            if (callerEmail == null || callerEmail.isBlank()) {
+                return HttpResponses.error(mapper, 401, "authentication required");
+            }
+            
+            if (!"TRAVEL_AGENT".equals(callerRole) && !"ADMIN".equals(callerRole)) {
+                return HttpResponses.error(mapper, 403, "only travel agents or admins can delete tours");
+            }
+            
+            // Verify agent/admin exists and has proper role
+            TravelAgent agent = agentsRepo.findByEmail(callerEmail);
+            if (agent == null || (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
+                return HttpResponses.error(mapper, 403, "not a registered travel agent or admin");
+            }
+            
+            // Check tour exists
+            Optional<TourItem> tourOpt = repo.getById(tourId);
+            if (tourOpt.isEmpty()) {
+                return HttpResponses.error(mapper, 404, "tour not found");
+            }
+            
+            TourItem tour = tourOpt.get();
+            
+            // Verify agent owns this tour (ADMIN can delete any tour)
+            if (!"ADMIN".equals(callerRole)) {
+                if (tour.getAgentEmail() == null || !tour.getAgentEmail().equalsIgnoreCase(callerEmail)) {
+                    return HttpResponses.error(mapper, 403, "you can only delete tours you created");
+                }
+            }
+            
+            // Delete tour
+            repo.delete(tourId);
+            
+            log.info("Tour deleted: {} by agent: {}", tourId, callerEmail);
+            return HttpResponses.json(mapper, 200, new DeleteTourResponse("Tour deleted successfully"));
+            
+        } catch (Exception e) {
+            log.error("deleteTour failed for tourId={}", tourId, e);
+            return HttpResponses.error(mapper, 500, "internal server error");
+        }
+    }
+
+    @Override
+    public APIGatewayProxyResponseEvent getMyTours(APIGatewayProxyRequestEvent event) {
+        try {
+            // Auth: require TRAVEL_AGENT or ADMIN role
+            String callerEmail = extractClaim(event, "email");
+            String callerRole = extractClaim(event, "custom:role");
+            
+            if (callerEmail == null || callerEmail.isBlank()) {
+                return HttpResponses.error(mapper, 401, "authentication required");
+            }
+            
+            if (!"TRAVEL_AGENT".equals(callerRole) && !"ADMIN".equals(callerRole)) {
+                return HttpResponses.error(mapper, 403, "only travel agents or admins can view tours");
+            }
+            
+            // Verify agent/admin exists and has proper role
+            TravelAgent agent = agentsRepo.findByEmail(callerEmail);
+            if (agent == null || (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
+                return HttpResponses.error(mapper, 403, "not a registered travel agent or admin");
+            }
+            
+            // Get tours: ADMIN sees all tours, TRAVEL_AGENT sees only their own
+            List<TourItem> tours;
+            if ("ADMIN".equals(callerRole)) {
+                // Admin can see all tours - get all tours from repository
+                tours = repo.listAll();
+            } else {
+                // Travel agent sees only their own tours
+                tours = repo.findByAgentEmail(callerEmail);
+            }
+            
+            // Convert to TourResponse
+            List<TourResponse> tourResponses = tours.stream()
+                    .map(TourMapper::toResponse)
+                    .collect(Collectors.toList());
+            
+            return HttpResponses.json(mapper, 200, new ToursPageResponse(tourResponses, 1, tourResponses.size(), 1, tourResponses.size()));
+            
+        } catch (Exception e) {
+            log.error("getMyTours failed", e);
+            return HttpResponses.error(mapper, 500, "internal server error");
         }
     }
 

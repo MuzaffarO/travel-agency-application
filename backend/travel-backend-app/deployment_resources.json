@@ -68,7 +68,7 @@
   "booking-status-nightly": {
     "resource_type": "eventbridge_schedule",
     "schedule_content": {
-      "name": "solo-booking-status-nightly-dev1",
+      "name": "solo-booking-status-nightly-dev2",
       "description": "Periodic job to mark finished bookings.",
       "flexible_time_window": {
         "mode": "OFF"
@@ -77,8 +77,8 @@
       "schedule_expression_timezone": "UTC",
       "state": "ENABLED",
       "target": {
-        "arn": "arn:aws:lambda:eu-west-3:663264486623:function:solo-booking-status-updater-dev1",
-        "role_arn": "arn:aws:iam::663264486623:role/solo-eventbridge-scheduler-role-dev1"
+        "arn": "arn:aws:lambda:eu-west-3:095194427230:function:solo-booking-status-updater-dev2",
+        "role_arn": "arn:aws:iam::095194427230:role/solo-eventbridge-scheduler-role-dev2"
       }
     },
     "dependencies": [
@@ -99,8 +99,8 @@
             "lambda:InvokeFunction"
           ],
           "Resource": [
-            "arn:aws:lambda:eu-west-3:663264486623:function:solo-booking-status-updater-dev1",
-            "arn:aws:lambda:eu-west-3:663264486623:function:solo-travel-reports-handler-dev1"
+            "arn:aws:lambda:eu-west-3:095194427230:function:solo-booking-status-updater-dev2",
+            "arn:aws:lambda:eu-west-3:095194427230:function:solo-travel-reports-handler-dev2"
           ]
         }
       ]
@@ -223,6 +223,7 @@
       ]
     }
   },
+
   "travel-api": {
     "resource_type": "api_gateway",
     "deploy_stage": "dev",
@@ -317,10 +318,52 @@
           "default_error_pattern": true
         }
       },
+      "/tours": {
+        "enable_cors": true,
+        "POST": {
+          "authorization_type": "cognitoAuthorizer",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        }
+      },
+      "/tours/my": {
+        "enable_cors": true,
+        "GET": {
+          "authorization_type": "cognitoAuthorizer",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        }
+      },
       "/tours/{id}": {
         "enable_cors": true,
         "GET": {
           "authorization_type": "NONE",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        },
+        "PUT": {
+          "authorization_type": "cognitoAuthorizer",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        },
+        "DELETE": {
+          "authorization_type": "cognitoAuthorizer",
           "integration_type": "lambda",
           "lambda_name": "travel-api-handler",
           "enable_proxy": true,
@@ -342,6 +385,39 @@
         },
         "GET": {
           "authorization_type": "NONE",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        }
+      },
+      "/admin/travel-agents": {
+        "enable_cors": true,
+        "POST": {
+          "authorization_type": "cognitoAuthorizer",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        },
+        "GET": {
+          "authorization_type": "cognitoAuthorizer",
+          "integration_type": "lambda",
+          "lambda_name": "travel-api-handler",
+          "enable_proxy": true,
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        }
+      },
+      "/admin/travel-agents/{email}": {
+        "enable_cors": true,
+        "DELETE": {
+          "authorization_type": "cognitoAuthorizer",
           "integration_type": "lambda",
           "lambda_name": "travel-api-handler",
           "enable_proxy": true,
@@ -540,7 +616,7 @@
   "reports-sender-schedule": {
     "resource_type": "eventbridge_schedule",
     "schedule_content": {
-      "name": "solo-reports-sender-schedule-dev1",
+      "name": "solo-reports-sender-schedule-dev2",
       "description": "Periodic job to generate travel reports every week.",
       "flexible_time_window": {
         "mode": "OFF"
@@ -549,8 +625,8 @@
       "schedule_expression_timezone": "UTC",
       "state": "ENABLED",
       "target": {
-        "arn": "arn:aws:lambda:eu-west-3:663264486623:function:solo-travel-reports-handler-dev1",
-        "role_arn": "arn:aws:iam::663264486623:role/solo-eventbridge-scheduler-role-dev1",
+        "arn": "arn:aws:lambda:eu-west-3:095194427230:function:solo-travel-reports-handler-dev2",
+        "role_arn": "arn:aws:iam::095194427230:role/solo-eventbridge-scheduler-role-dev2",
         "input": "{\"reportType\": \"both\", \"period\": \"WEEKLY\", \"year\": 2025, \"sendEmail\": true}"
       }
     },

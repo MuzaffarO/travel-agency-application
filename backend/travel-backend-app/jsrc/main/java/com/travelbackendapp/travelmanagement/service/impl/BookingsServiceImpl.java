@@ -277,17 +277,26 @@ public class BookingsServiceImpl implements BookingsService {
                 return HttpResponses.json(mapper, 200, java.util.Map.of("bookings", result));
             }
 
-            if ("TRAVEL_AGENT".equalsIgnoreCase(callerRole)) {
+            if ("TRAVEL_AGENT".equalsIgnoreCase(callerRole) || "ADMIN".equalsIgnoreCase(callerRole)) {
                 if (callerEmail == null || callerEmail.isBlank()) {
                     return HttpResponses.error(mapper, 403, "missing email claim");
                 }
 
                 TravelAgent agent = agentsRepo.findByEmail(callerEmail);
-                if (agent == null || !"TRAVEL_AGENT".equals(agent.getRole())) {
-                    return HttpResponses.error(mapper, 403, "not a registered travel agent");
+                if (agent == null || (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
+                    return HttpResponses.error(mapper, 403, "not a registered travel agent or admin");
                 }
 
-                List<BookingItem> bookingItems = bookingsRepo.findByAgentEmail(callerEmail);
+                // TRAVEL_AGENT sees only their bookings, ADMIN sees all bookings
+                List<BookingItem> bookingItems;
+                if ("ADMIN".equalsIgnoreCase(callerRole)) {
+                    // Admin sees all bookings - get all bookings
+                    bookingItems = bookingsRepo.findAll();
+                } else {
+                    // Travel agent sees only their bookings
+                    bookingItems = bookingsRepo.findByAgentEmail(callerEmail);
+                }
+
                 for (BookingItem booking : bookingItems) {
                     TourItem tour = toursRepo.getById(booking.getTourId()).orElse(null);
 
@@ -306,7 +315,7 @@ public class BookingsServiceImpl implements BookingsService {
                 return HttpResponses.json(mapper, 200, java.util.Map.of("bookings", result));
             }
 
-            return HttpResponses.error(mapper, 403, "incorrect role: must be either customer or travel agent");
+            return HttpResponses.error(mapper, 403, "incorrect role: must be either customer, travel agent, or admin");
         } catch (Exception e) {
             log.error("view booking failed", e);
             return HttpResponses.error(mapper, 500, "internal server error");

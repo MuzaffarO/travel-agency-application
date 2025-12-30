@@ -305,4 +305,64 @@ public class ToursRepository {
         return out;
     }
 
+    public void save(TourItem tour) {
+        try {
+            table.putItem(tour);
+            log.info("Tour saved: {}", tour.getTourId());
+        } catch (Exception e) {
+            log.error("Failed to save tour: {}", tour.getTourId(), e);
+            throw new RuntimeException("Failed to save tour", e);
+        }
+    }
+
+    public void update(TourItem tour) {
+        try {
+            table.updateItem(tour);
+            log.info("Tour updated: {}", tour.getTourId());
+        } catch (Exception e) {
+            log.error("Failed to update tour: {}", tour.getTourId(), e);
+            throw new RuntimeException("Failed to update tour", e);
+        }
+    }
+
+    public void delete(String tourId) {
+        try {
+            Key key = Key.builder().partitionValue(tourId).build();
+            table.deleteItem(key);
+            log.info("Tour deleted: {}", tourId);
+        } catch (Exception e) {
+            log.error("Failed to delete tour: {}", tourId, e);
+            throw new RuntimeException("Failed to delete tour", e);
+        }
+    }
+
+    public List<TourItem> findByAgentEmail(String agentEmail) {
+        List<TourItem> out = new ArrayList<>();
+        try {
+            Map<String, AttributeValue> values = new HashMap<>();
+            Map<String, String> names = new HashMap<>();
+            
+            names.put("#ae", "agentEmail");
+            values.put(":email", AttributeValue.builder().s(agentEmail).build());
+            
+            Expression filterExpr = Expression.builder()
+                    .expression("#ae = :email")
+                    .expressionValues(values)
+                    .expressionNames(names)
+                    .build();
+
+            ScanEnhancedRequest req = ScanEnhancedRequest.builder()
+                    .filterExpression(filterExpr)
+                    .build();
+
+            for (Page<TourItem> p : table.scan(req)) {
+                out.addAll(p.items());
+            }
+            log.info("Found {} tours for agent: {}", out.size(), agentEmail);
+        } catch (Exception e) {
+            log.error("findByAgentEmail scan failed for agent: {}", agentEmail, e);
+        }
+        return out;
+    }
+
 }

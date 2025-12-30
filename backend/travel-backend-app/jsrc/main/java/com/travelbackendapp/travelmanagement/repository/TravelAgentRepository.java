@@ -8,11 +8,14 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class TravelAgentRepository {
@@ -67,5 +70,22 @@ public class TravelAgentRepository {
                 .build();
         
         travelAgentTable.deleteItem(key);
+    }
+
+    /**
+     * List all travel agents
+     * @return List of all travel agents
+     */
+    public List<TravelAgent> findAll() {
+        List<TravelAgent> agents = new ArrayList<>();
+        try {
+            for (Page<TravelAgent> page : travelAgentTable.scan()) {
+                agents.addAll(page.items());
+            }
+            log.info("Found {} travel agents", agents.size());
+        } catch (Exception e) {
+            log.error("Failed to list travel agents", e);
+        }
+        return agents;
     }
 }

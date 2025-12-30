@@ -48,6 +48,7 @@ const Header: React.FC = () => {
       case "TRAVEL_AGENT":
         return [
           { label: "All tours", href: "/" },
+          { label: "My Tours", href: "/agent/tours" },
           { label: "Bookings", href: "/bookings" },
         ];
       case "ADMIN":

@@ -1,10 +1,11 @@
 import { useDispatch } from "react-redux";
 import { useFieldArray, useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Modal from "../../../ui/Modal";
-import { Star } from "lucide-react";
+import { Star, Calendar, Utensils } from "lucide-react";
 import Input from "../../../ui/Input";
 import Button from "../../Button";
+import IconDropdown from "../../IconDropdown";
 import type { RootState } from "../../../store/store";
 import {
   closeModal,
@@ -16,12 +17,19 @@ import {
   bookingFormSchema,
   type BookingFormData,
 } from "../../../schemas/bookingSchema";
-import DateDropdown from "../../DateDropdown";
-import MealDropdown from "../../MealDropdown";
 import GuestsDropdown from "../../GuestsDropdown";
 import { useAppSelector } from "../../../store/hooks/useAppSelector";
 import { bookTour } from "../../../services/bookTour";
 import { setGuests } from "../../../store/guests/guestsSlice";
+import axios from "axios";
+import { BACK_URL } from "../../../constants";
+
+type TourData = {
+  id: string;
+  startDates: string[];
+  durations: string[];
+  mealPlans: string[];
+};
 
 const isBookingModalProps = (props: unknown): props is BookingModalProps => {
   return (
@@ -42,6 +50,11 @@ const BookingFormModal = () => {
   const user = useAppSelector((state: RootState) => state.user);
   const guests = useAppSelector((state: RootState) => state.guests);
 
+  const [tourData, setTourData] = useState<TourData | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMealPlan, setSelectedMealPlan] = useState<string>("");
+  const [fetchingTour, setFetchingTour] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -55,6 +68,30 @@ const BookingFormModal = () => {
   });
 
   const { fields, append } = useFieldArray({ control, name: "guests" });
+
+  // Fetch tour details when modal opens
+  useEffect(() => {
+    if (isOpen && modalProps && isBookingModalProps(modalProps) && modalProps.tourId) {
+      setFetchingTour(true);
+      axios
+        .get<TourData>(`${BACK_URL}/tours/${modalProps.tourId}`)
+        .then((response) => {
+          setTourData(response.data);
+          if (response.data.startDates?.[0]) {
+            setSelectedDate(response.data.startDates[0]);
+          }
+          if (response.data.mealPlans?.[0]) {
+            setSelectedMealPlan(response.data.mealPlans[0]);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch tour data", err);
+        })
+        .finally(() => {
+          setFetchingTour(false);
+        });
+    }
+  }, [isOpen, modalProps]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -88,17 +125,82 @@ const BookingFormModal = () => {
     priceFrom,
     tourId,
     durations,
-    startDate,
-    mealPlans,
   } = modalProps;
 
+  const createDateOptions = () => {
+    if (!tourData?.startDates) return [];
+    return tourData.startDates.map((date) => {
+      try {
+        return new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      } catch {
+        return date;
+      }
+    });
+  };
+
+  const getCurrentDateLabel = () => {
+    if (!selectedDate) return "Select date";
+    try {
+      return new Date(selectedDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return selectedDate;
+    }
+  };
+
+  const handleDateSelect = (option: string) => {
+    if (!tourData?.startDates) return;
+    
+    const matchingDate = tourData.startDates.find((date) => {
+      try {
+        const formatted = new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        return formatted === option;
+      } catch {
+        return date === option;
+      }
+    });
+    
+    if (matchingDate) {
+      setSelectedDate(matchingDate);
+    }
+  };
+
+  const handleMealPlanSelect = (option: string) => {
+    setSelectedMealPlan(option);
+  };
+
+  const mealPlanKeyMap: Record<string, string> = {
+    "Breakfast (BB)": "BB",
+    "Half-board (HB)": "HB",
+    "Full-board (FB)": "FB",
+    "All inclusive (AI)": "AI",
+  };
+
   const onSubmit = async (formData: BookingFormData) => {
+    if (!selectedDate || !selectedMealPlan) {
+      alert("Please select a date and meal plan");
+      return;
+    }
+
+    const mealPlanCode = mealPlanKeyMap[selectedMealPlan] || selectedMealPlan;
+
     const requestBody = {
       userId: user.userName,
       tourId,
-      date: startDate ?? new Date().toISOString().split("T")[0],
+      date: selectedDate,
       duration: durations?.[0] || "7 days",
-      mealPlan: mealPlans?.[0] || "Standard",
+      mealPlan: mealPlanCode,
       guests: {
         adult: guests.adults,
         children: guests.children,
@@ -117,9 +219,9 @@ const BookingFormModal = () => {
           name: "confirmReserve",
           props: {
             tourName,
-            startDate: startDate ?? new Date().toISOString().split("T")[0],
+            startDate: selectedDate,
             duration: durations?.[0] || "7 days",
-            mealPlan: mealPlans?.[0] || "Standard",
+            mealPlan: selectedMealPlan,
             adults: guests.adults,
             children: guests.children,
           },
@@ -178,29 +280,56 @@ const BookingFormModal = () => {
 
           <div className="flex flex-col gap-3">
             <h3 className="h3 mb-1">Tour details</h3>
-            <DateDropdown />
-            <GuestsDropdown
-              classNames=""
-              onChange={({ adults, children }) => {
-                dispatch(setGuests({ adults, children }));
+            
+            {fetchingTour ? (
+              <p>Loading tour details...</p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label className="body-bold">Start Date</label>
+                  <IconDropdown
+                    icon={<Calendar size={16} />}
+                    options={createDateOptions()}
+                    defaultValue={getCurrentDateLabel()}
+                    onSelect={handleDateSelect}
+                    placeholder="Select date"
+                  />
+                </div>
 
-                const newGuests = [
-                  ...Array.from({ length: adults }, () => ({
-                    type: "adult" as const,
-                    firstName: "",
-                    lastName: "",
-                  })),
-                  ...Array.from({ length: children }, () => ({
-                    type: "child" as const,
-                    firstName: "",
-                    lastName: "",
-                  })),
-                ];
+                <GuestsDropdown
+                  classNames=""
+                  onChange={({ adults, children }) => {
+                    dispatch(setGuests({ adults, children }));
 
-                setValue("guests", newGuests);
-              }}
-            />
-            <MealDropdown />
+                    const newGuests = [
+                      ...Array.from({ length: adults }, () => ({
+                        type: "adult" as const,
+                        firstName: "",
+                        lastName: "",
+                      })),
+                      ...Array.from({ length: children }, () => ({
+                        type: "child" as const,
+                        firstName: "",
+                        lastName: "",
+                      })),
+                    ];
+
+                    setValue("guests", newGuests);
+                  }}
+                />
+
+                <div className="flex flex-col gap-2">
+                  <label className="body-bold">Meal Plan</label>
+                  <IconDropdown
+                    icon={<Utensils size={16} />}
+                    options={tourData?.mealPlans || []}
+                    defaultValue={selectedMealPlan || "Select meal plan"}
+                    onSelect={handleMealPlanSelect}
+                    placeholder="Select meal plan"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <p className="text-[14px] font-extrabold self-end mt-3">
@@ -208,7 +337,7 @@ const BookingFormModal = () => {
           </p>
         </div>
 
-        <Button>Book the tour</Button>
+        <Button disabled={fetchingTour}>Book the tour</Button>
       </form>
     </Modal>
   );

@@ -9,4 +9,8 @@ public interface ToursService {
     APIGatewayProxyResponseEvent getTourDetails(APIGatewayProxyRequestEvent event, String tourId);
     APIGatewayProxyResponseEvent getTourReviews(APIGatewayProxyRequestEvent event, String tourId);
     APIGatewayProxyResponseEvent postTourReview(APIGatewayProxyRequestEvent event, String tourId);
+    APIGatewayProxyResponseEvent createTour(APIGatewayProxyRequestEvent event);
+    APIGatewayProxyResponseEvent updateTour(APIGatewayProxyRequestEvent event, String tourId);
+    APIGatewayProxyResponseEvent deleteTour(APIGatewayProxyRequestEvent event, String tourId);
+    APIGatewayProxyResponseEvent getMyTours(APIGatewayProxyRequestEvent event);
 }

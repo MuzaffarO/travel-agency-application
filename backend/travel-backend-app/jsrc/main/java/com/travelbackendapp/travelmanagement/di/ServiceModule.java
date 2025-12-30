@@ -25,8 +25,9 @@ public class ServiceModule {
     ToursService provideToursService(ToursRepository toursRepository, ReviewsRepository reviewsRepo,
                                      BookingsRepository bookingsRepo, ObjectMapper mapper, Validator validator,
                                      CognitoIdentityProviderClient cognitoClient,
-                                     @Named("userPoolId") String userPoolId) {
-        return new ToursServiceImpl(toursRepository, reviewsRepo, bookingsRepo, mapper, validator, cognitoClient, userPoolId);
+                                     @Named("userPoolId") String userPoolId,
+                                     TravelAgentRepository travelAgentRepository) {
+        return new ToursServiceImpl(toursRepository, reviewsRepo, bookingsRepo, mapper, validator, cognitoClient, userPoolId, travelAgentRepository);
     }
 
 
@@ -113,6 +114,14 @@ public class ServiceModule {
     String provideGeminiModel() {
         String v = System.getenv("GEMINI_MODEL");
         return (v == null || v.isBlank()) ? "gemini-2.0-flash" : v;
+    }
+
+    @Provides
+    @Singleton
+    TravelAgentsService provideTravelAgentsService(TravelAgentRepository agentsRepo, ObjectMapper mapper,
+                                                   Validator validator, CognitoIdentityProviderClient cognitoClient,
+                                                   @Named("userPoolId") String userPoolId) {
+        return new TravelAgentsServiceImpl(agentsRepo, mapper, validator, cognitoClient, userPoolId);
     }
 
 }

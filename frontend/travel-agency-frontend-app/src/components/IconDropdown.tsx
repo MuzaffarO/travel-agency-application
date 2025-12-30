@@ -52,6 +52,7 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
     <div className={`w-full ${className}`}>
       <div className="relative" ref={dropdownRef}>
         <button
+          type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={`flex items-center justify-between cursor-pointer w-full px-3 py-3.5 bg-white border border-grey-05 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -77,6 +78,7 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
             {options.map((option: string, index: number) => (
               <button
                 key={`${option}-${index}`}
+                type="button"
                 onClick={() => handleSelect(option)}
                 className={`w-full cursor-pointer button-text text-left px-4 py-2 text-sm hover:bg-blue-02 first:rounded-t-lg last:rounded-b-lg transition-colors duration-150 flex items-center gap-3 ${
                   selectedOption === option ? "text-blue-05" : "text-blue-09"
