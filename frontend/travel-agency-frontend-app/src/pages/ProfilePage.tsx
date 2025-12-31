@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { User, Camera, Pencil, Check, X } from "lucide-react";
 import { useForm, FormProvider } from "react-hook-form";
+import { useDispatch } from "react-redux";
 import Input from "../ui/Input";
 import Button from "../components/Button";
 import { getUserInfo, type UserInfo } from "../services/getUserInfo";
 import { updateUserName, type UpdateUserNameRequest } from "../services/updateUserName";
 import { updateUserImage } from "../services/updateUserImage";
+import { setUserImageUrl } from "../store/user/userSlice";
 
 type UserData = {
   firstName: string;
@@ -14,6 +16,7 @@ type UserData = {
 };
 
 export default function ProfilePage() {
+  const dispatch = useDispatch();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -154,6 +157,8 @@ export default function ProfilePage() {
       setSuccess("Profile picture updated successfully");
       setUserData((prev) => (prev ? { ...prev, imageUrl: response.imageUrl } : null));
       setImageError(false); // Reset image error when new image is uploaded
+      // Update Redux store with new image URL
+      dispatch(setUserImageUrl(response.imageUrl));
       await fetchUser();
     } catch (err: unknown) {
       console.error("Failed to update profile image:", err);

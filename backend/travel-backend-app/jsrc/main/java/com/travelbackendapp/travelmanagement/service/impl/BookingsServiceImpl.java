@@ -101,7 +101,8 @@ public class BookingsServiceImpl implements BookingsService {
                 return HttpResponses.error(mapper, 409, "tour has no assigned travel agent");
             }
             var agent = agentsRepo.findByEmail(agentEmail);
-            if (agent == null || agent.getRole() == null || !"TRAVEL_AGENT".equals(agent.getRole())) {
+            if (agent == null || agent.getRole() == null || 
+                (!"TRAVEL_AGENT".equals(agent.getRole()) && !"ADMIN".equals(agent.getRole()))) {
                 return HttpResponses.error(mapper, 409, "assigned travel agent is not available");
             }
 

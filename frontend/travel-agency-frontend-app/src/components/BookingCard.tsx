@@ -83,7 +83,7 @@ const BookingCard = ({ booking }: BookingCardProps) => {
       const token = user.token;
 
       await axios.post(
-        `${BACK_URL}/${booking.id}/confirm`,
+        `${BACK_URL}/bookings/${booking.id}/confirm`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

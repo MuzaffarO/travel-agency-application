@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { BACK_URL } from "../../constants";
+import { getUserInfo } from "../../services/getUserInfo";
 
 interface SignUpResponse {
   id: string;
@@ -71,5 +72,36 @@ export const signIn = createAsyncThunk<
       );
     }
     return thunkAPI.rejectWithValue("Unknown error occurred.");
+  }
+});
+
+export const fetchUserInfo = createAsyncThunk<
+  { firstName: string; lastName: string; imageUrl?: string; role: string },
+  { token: string; email: string },
+  { rejectValue: string }
+>("user/fetchUserInfo", async ({ token, email }, thunkAPI) => {
+  try {
+    const data = await getUserInfo(token, email);
+    return {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      imageUrl: data.imageUrl,
+      role: data.role,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      interface ErrorResponse {
+        message?: string;
+      }
+      const errorData = error.response?.data as ErrorResponse | undefined;
+      const message = errorData?.message || "Failed to fetch user info";
+      return thunkAPI.rejectWithValue(message);
+    }
+    if (error instanceof Error) {
+      return thunkAPI.rejectWithValue(
+        error.message || "Failed to fetch user info"
+      );
+    }
+    return thunkAPI.rejectWithValue("Failed to fetch user info");
   }
 });

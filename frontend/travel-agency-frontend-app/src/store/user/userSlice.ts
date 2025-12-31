@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { signIn, signUp } from "./userThunks";
+import { signIn, signUp, fetchUserInfo } from "./userThunks";
 
 interface UserState {
   isAuth: boolean;
@@ -9,6 +9,7 @@ interface UserState {
   token: string;
   role: string;
   userName: string;
+  imageUrl?: string;
 }
 
 const initialState: UserState = {
@@ -19,6 +20,7 @@ const initialState: UserState = {
   token: "",
   role: "",
   userName: "",
+  imageUrl: undefined,
 };
 
 const userSlice = createSlice({
@@ -40,6 +42,19 @@ const userSlice = createSlice({
         }
       }
       return state;
+    },
+    setUserImageUrl(state, action: { payload: string | undefined }) {
+      state.imageUrl = action.payload;
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          user.imageUrl = action.payload;
+          localStorage.setItem("user", JSON.stringify(user));
+        } catch (e) {
+          console.warn("Failed to update imageUrl in localStorage:", e);
+        }
+      }
     },
   },
   extraReducers: (builder) => {
@@ -76,11 +91,36 @@ const userSlice = createSlice({
           email: action.payload.email,
           token: action.payload.idToken,
           userName: action.payload.userName,
+          imageUrl: state.imageUrl,
         })
       );
+    });
+    builder.addCase(fetchUserInfo.fulfilled, (state, action) => {
+      state.firstName = action.payload.firstName;
+      state.lastName = action.payload.lastName;
+      state.imageUrl = action.payload.imageUrl;
+      if (action.payload.role) {
+        state.role = action.payload.role;
+      }
+
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          user.firstName = action.payload.firstName;
+          user.lastName = action.payload.lastName;
+          user.imageUrl = action.payload.imageUrl;
+          if (action.payload.role) {
+            user.role = action.payload.role;
+          }
+          localStorage.setItem("user", JSON.stringify(user));
+        } catch (e) {
+          console.warn("Failed to update user info in localStorage:", e);
+        }
+      }
     });
   },
 });
 
-export const { logout, restoreUser } = userSlice.actions;
+export const { logout, restoreUser, setUserImageUrl } = userSlice.actions;
 export default userSlice.reducer;

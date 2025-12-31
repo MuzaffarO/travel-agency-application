@@ -1,20 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Luggage, CircleUserRound } from "lucide-react";
+import { Luggage, CircleUserRound, User } from "lucide-react";
 import Button from "../Button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../../store/store";
 import UserPopup from "../UserPopup";
+import { fetchUserInfo } from "../../store/user/userThunks";
 
 type UserRole = string;
 
 const Header: React.FC = () => {
-  const { userName, role } = useSelector((state: RootState) => state.user);
+  const { userName, role, email, token, imageUrl } = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
 
   const location = useLocation();
   const navigate = useNavigate();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
+  const [imageError, setImageError] = useState(false);
 
   //TEST DATA
   // const testRole = "ADMIN";
@@ -36,6 +39,13 @@ const Header: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch user info if authenticated but imageUrl is missing
+  useEffect(() => {
+    if (userName && email && token && !imageUrl) {
+      dispatch(fetchUserInfo({ token, email }) as any);
+    }
+  }, [userName, email, token, imageUrl, dispatch]);
+
   const getNavigationItems = (role: UserRole) => {
     switch (role) {
       case "not-logged-in":
@@ -52,7 +62,13 @@ const Header: React.FC = () => {
           { label: "Bookings", href: "/bookings" },
         ];
       case "ADMIN":
-        return [{ label: "Reports", href: "/reports" }];
+        return [
+          { label: "All tours", href: "/" },
+          { label: "My Tours", href: "/agent/tours" },
+          { label: "Bookings", href: "/bookings" },
+          { label: "Reports", href: "/reports" },
+          { label: "Manage Agents", href: "/admin/travel-agents" },
+        ];
       default:
         return [{ label: "All tours", href: "/" }];
     }
@@ -128,7 +144,18 @@ const Header: React.FC = () => {
                   className="flex items-center"
                   onClick={handleProfileClick}
                 >
-                  <CircleUserRound className="text-blue-09" size={24} />
+                  {imageUrl && !imageError ? (
+                    <img
+                      src={imageUrl}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-blue-09"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-09 flex items-center justify-center border-2 border-blue-09">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                  )}
                 </a>
                 {userDisplayText && (
                   <span className="navigation text-blue-09">
