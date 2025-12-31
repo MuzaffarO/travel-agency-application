@@ -43,13 +43,19 @@ const userSlice = createSlice({
       }
       return state;
     },
-    setUserImageUrl(state, action: { payload: string | undefined }) {
-      state.imageUrl = action.payload;
+    setUserImageUrl(state, action: { payload: string | null | undefined }) {
+      // Add cache-busting parameter if URL doesn't already have query params
+      // This ensures the browser fetches the new image instead of using cached version
+      let imageUrl = action.payload || undefined;
+      if (imageUrl && !imageUrl.includes("?")) {
+        imageUrl = `${imageUrl}?v=${Date.now()}`;
+      }
+      state.imageUrl = imageUrl;
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          user.imageUrl = action.payload;
+          user.imageUrl = imageUrl;
           localStorage.setItem("user", JSON.stringify(user));
         } catch (e) {
           console.warn("Failed to update imageUrl in localStorage:", e);

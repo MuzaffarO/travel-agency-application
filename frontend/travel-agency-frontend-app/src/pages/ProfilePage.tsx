@@ -157,8 +157,9 @@ export default function ProfilePage() {
       setSuccess("Profile picture updated successfully");
       setUserData((prev) => (prev ? { ...prev, imageUrl: response.imageUrl } : null));
       setImageError(false); // Reset image error when new image is uploaded
-      // Update Redux store with new image URL
+      // Update Redux store with new image URL immediately
       dispatch(setUserImageUrl(response.imageUrl));
+      // Fetch user info to ensure everything is in sync
       await fetchUser();
     } catch (err: unknown) {
       console.error("Failed to update profile image:", err);

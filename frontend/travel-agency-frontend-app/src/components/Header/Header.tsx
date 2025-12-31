@@ -46,6 +46,13 @@ const Header: React.FC = () => {
     }
   }, [userName, email, token, imageUrl, dispatch]);
 
+  // Reset image error when imageUrl changes
+  useEffect(() => {
+    if (imageUrl) {
+      setImageError(false);
+    }
+  }, [imageUrl]);
+
   const getNavigationItems = (role: UserRole) => {
     switch (role) {
       case "not-logged-in":
@@ -146,6 +153,7 @@ const Header: React.FC = () => {
                 >
                   {imageUrl && !imageError ? (
                     <img
+                      key={imageUrl} // Force re-render when imageUrl changes
                       src={imageUrl}
                       alt="Profile"
                       className="w-8 h-8 rounded-full object-cover border-2 border-blue-09"
