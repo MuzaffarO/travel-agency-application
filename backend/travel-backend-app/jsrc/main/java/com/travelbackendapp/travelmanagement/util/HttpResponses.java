@@ -22,7 +22,18 @@ public final class HttpResponses {
                     .withHeaders(JSON)
                     .withBody(mapper.writeValueAsString(bodyObj));
         } catch (Exception e) {
-            return error(mapper, 500, "serialization error");
+            // Avoid infinite recursion - directly create error response
+            try {
+                return new APIGatewayProxyResponseEvent()
+                        .withStatusCode(500)
+                        .withHeaders(JSON)
+                        .withBody("{\"error\":\"serialization error\"}");
+            } catch (Exception e2) {
+                return new APIGatewayProxyResponseEvent()
+                        .withStatusCode(500)
+                        .withHeaders(JSON)
+                        .withBody("{\"error\":\"internal server error\"}");
+            }
         }
     }
 

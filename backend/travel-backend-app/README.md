@@ -807,9 +807,25 @@ Chat with AI assistant about tours and travel.
 **Response:** `200 OK`
 ```json
 {
-  "response": "Here are some great tours in Paris..."
+  "reply": "Here are some great tours in Paris...",
+  "cards": [
+    {
+      "id": "T-1234567890",
+      "title": "Paris City Break",
+      "destination": "Paris",
+      "hotel": "Grand Hotel Paris",
+      "badge": "2025-06-01 • $1,200",
+      "imageUrl": "https://...",
+      "priceFrom": 1200.0,
+      "durationHint": "7 days/10 days",
+      "mealHint": "BB/HB/FB/AI",
+      "rating": "4.5"
+    }
+  ]
 }
 ```
+
+**Note:** The `cards` array is optional and only included when the user's query indicates they want tour suggestions (e.g., "recommend", "suggest", "show me tours").
 
 ---
 

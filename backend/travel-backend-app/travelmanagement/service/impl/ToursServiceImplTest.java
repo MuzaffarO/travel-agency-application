@@ -114,7 +114,7 @@ class ToursServiceImplTest {
     void shouldGetDestinationsSuccessfully() throws Exception {
         // Given
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
-        event.setQueryStringParameters(Collections.emptyMap());
+        event.setQueryStringParameters(Map.of("destination", "Par", "limit", "10"));
 
         when(toursRepository.findDestinationsLike(anyString(), anyInt()))
                 .thenReturn(Arrays.asList("Paris", "London", "Rome"));
@@ -239,10 +239,9 @@ class ToursServiceImplTest {
         existingTour.setAgentEmail(TEST_EMAIL);
         TravelAgent agent = createTravelAgent("TRAVEL_AGENT");
 
-        when(toursRepository.getById(TEST_TOUR_ID)).thenReturn(Optional.of(existingTour));
         when(travelAgentRepository.findByEmail(TEST_EMAIL)).thenReturn(agent);
+        when(toursRepository.getById(TEST_TOUR_ID)).thenReturn(Optional.of(existingTour));
         when(objectMapper.readValue(requestBody, UpdateTourRequest.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
         doNothing().when(toursRepository).update(any(TourItem.class));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -259,10 +258,14 @@ class ToursServiceImplTest {
     @DisplayName("Should reject tour update by non-owner")
     void shouldRejectTourUpdateByNonOwner() throws Exception {
         // Given
-        APIGatewayProxyRequestEvent event = createAuthenticatedEvent("other@test.com", "TRAVEL_AGENT");
+        String otherEmail = "other@test.com";
+        APIGatewayProxyRequestEvent event = createAuthenticatedEvent(otherEmail, "TRAVEL_AGENT");
         TourItem existingTour = createTestTour();
         existingTour.setAgentEmail(TEST_EMAIL);
+        TravelAgent otherAgent = createTravelAgent("TRAVEL_AGENT");
+        otherAgent.setEmail(otherEmail);
 
+        when(travelAgentRepository.findByEmail(otherEmail)).thenReturn(otherAgent);
         when(toursRepository.getById(TEST_TOUR_ID)).thenReturn(Optional.of(existingTour));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -279,7 +282,8 @@ class ToursServiceImplTest {
     @DisplayName("Should allow ADMIN to update any tour")
     void shouldAllowAdminToUpdateAnyTour() throws Exception {
         // Given
-        APIGatewayProxyRequestEvent event = createAuthenticatedEvent("admin@test.com", "ADMIN");
+        String adminEmail = "admin@test.com";
+        APIGatewayProxyRequestEvent event = createAuthenticatedEvent(adminEmail, "ADMIN");
         UpdateTourRequest request = createValidUpdateTourRequest();
         String requestBody = "{}";
 
@@ -288,11 +292,11 @@ class ToursServiceImplTest {
         TourItem existingTour = createTestTour();
         existingTour.setAgentEmail(TEST_EMAIL);
         TravelAgent admin = createTravelAgent("ADMIN");
+        admin.setEmail(adminEmail);
 
+        when(travelAgentRepository.findByEmail(adminEmail)).thenReturn(admin);
         when(toursRepository.getById(TEST_TOUR_ID)).thenReturn(Optional.of(existingTour));
-        when(travelAgentRepository.findByEmail("admin@test.com")).thenReturn(admin);
         when(objectMapper.readValue(requestBody, UpdateTourRequest.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
         doNothing().when(toursRepository).update(any(TourItem.class));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 

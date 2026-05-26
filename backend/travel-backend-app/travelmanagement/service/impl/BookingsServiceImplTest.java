@@ -8,6 +8,7 @@ import com.travelbackendapp.travelmanagement.model.api.request.CreateBookingRequ
 import com.travelbackendapp.travelmanagement.model.entity.BookingItem;
 import com.travelbackendapp.travelmanagement.model.entity.TourItem;
 import com.travelbackendapp.travelmanagement.model.entity.TravelAgent;
+import com.travelbackendapp.travelmanagement.domain.BookingStatus;
 import com.travelbackendapp.travelmanagement.repository.BookingsRepository;
 import com.travelbackendapp.travelmanagement.repository.BookingsStatusRepository;
 import com.travelbackendapp.travelmanagement.repository.DocumentsRepository;
@@ -97,8 +98,7 @@ class BookingsServiceImplTest {
         when(objectMapper.readValue(requestBody, CreateBookingRequest.class)).thenReturn(request);
         when(toursRepository.getById(TEST_TOUR_ID)).thenReturn(Optional.of(tour));
         when(travelAgentRepository.findByEmail(anyString())).thenReturn(agent);
-        doNothing().when(bookingsRepository).save(any(BookingItem.class));
-        doNothing().when(eventPublisher).publishBookingCreated(anyString());
+        doNothing().when(bookingsRepository).transactReserveSeatsAndSave(any(BookingItem.class), eq(TEST_TOUR_ID), anyInt());
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -107,7 +107,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertTrue(response.getStatusCode() == 201 || response.getStatusCode() == 200);
-        verify(bookingsRepository).save(any(BookingItem.class));
+        verify(bookingsRepository).transactReserveSeatsAndSave(any(BookingItem.class), eq(TEST_TOUR_ID), anyInt());
     }
 
     @Test
@@ -124,7 +124,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertEquals(401, response.getStatusCode());
-        verify(bookingsRepository, never()).save(any());
+        verify(bookingsRepository, never()).transactReserveSeatsAndSave(any(), anyString(), anyInt());
     }
 
     @Test
@@ -147,7 +147,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertEquals(404, response.getStatusCode());
-        verify(bookingsRepository, never()).save(any());
+        verify(bookingsRepository, never()).transactReserveSeatsAndSave(any(), anyString(), anyInt());
     }
 
     @Test
@@ -173,7 +173,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertEquals(409, response.getStatusCode());
-        verify(bookingsRepository, never()).save(any());
+        verify(bookingsRepository, never()).transactReserveSeatsAndSave(any(), anyString(), anyInt());
     }
 
     @Test
@@ -224,11 +224,12 @@ class BookingsServiceImplTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent();
         BookingItem booking = createTestBooking();
+        booking.setUserId(TEST_USER_ID); // Ensure userId matches
         String bookingId = booking.getBookingId();
 
-        when(bookingsRepository.getById(bookingId)).thenReturn(Optional.of(booking));
-        doNothing().when(bookingsRepository).delete(bookingId);
-        doNothing().when(eventPublisher).publishBookingCancelled(bookingId);
+        when(bookingsRepository.get(TEST_USER_ID, bookingId)).thenReturn(booking);
+        doNothing().when(bookingsRepository).put(any(BookingItem.class));
+        doNothing().when(eventPublisher).publishBookingEvent(anyString(), anyString(), anyString(), anyString(), anyString());
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -237,7 +238,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertEquals(200, response.getStatusCode());
-        verify(bookingsRepository).delete(bookingId);
+        verify(bookingsRepository).put(any(BookingItem.class));
     }
 
     @Test
@@ -246,13 +247,13 @@ class BookingsServiceImplTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent(TEST_EMAIL, "TRAVEL_AGENT");
         BookingItem booking = createTestBooking();
+        booking.setAgentEmail(TEST_EMAIL); // Ensure agentEmail matches
         String bookingId = booking.getBookingId();
         TravelAgent agent = createTravelAgent();
+        agent.setEmail(TEST_EMAIL);
 
-        when(bookingsRepository.getById(bookingId)).thenReturn(Optional.of(booking));
-        when(travelAgentRepository.findByEmail(TEST_EMAIL)).thenReturn(agent);
-        doNothing().when(bookingsRepository).update(any(BookingItem.class));
-        doNothing().when(eventPublisher).publishBookingConfirmed(bookingId);
+        when(bookingsRepository.getByBookingId(bookingId)).thenReturn(booking);
+        doNothing().when(bookingsStatusRepository).markConfirmed(anyString(), anyString(), anyString());
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -261,7 +262,7 @@ class BookingsServiceImplTest {
         // Then
         assertNotNull(response);
         assertEquals(200, response.getStatusCode());
-        verify(bookingsRepository).update(any(BookingItem.class));
+        verify(bookingsStatusRepository).markConfirmed(anyString(), anyString(), anyString());
     }
 
     // Helper methods
@@ -340,6 +341,8 @@ class BookingsServiceImplTest {
         booking.setChildren(0);
         booking.setTotalPrice(2400.0);
         booking.setAgentEmail("agent@test.com");
+        booking.setFreeCancelationUntil(LocalDate.now().plusDays(20).toString()); // Set free cancellation date
+        booking.setStatusEnum(BookingStatus.BOOKED);
         return booking;
     }
 }
