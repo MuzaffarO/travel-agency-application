@@ -50,18 +50,32 @@ const AssistantWindow = () => {
         }
       );
 
-      const aiMessageText = response.data?.reply ?? "No response from AI";
+      const aiMessageText = response.data?.reply ?? response.data?.response ?? "No response from AI";
       setChatMessages((prev) => [
         ...prev,
         { from: "ai", message: aiMessageText },
       ]);
-    } catch (error) {
-      console.error(error);
+    } catch (error: unknown) {
+      console.error("AI chat error:", error);
+      let errorMessage = "Sorry, something went wrong. Please try again.";
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.status === 400) {
+          errorMessage = "Invalid request. Please check your message and try again.";
+        } else if (error.response?.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.response?.status === 503) {
+          errorMessage = "AI service is temporarily unavailable. Please try again later.";
+        }
+      }
+      
       setChatMessages((prev) => [
         ...prev,
         {
           from: "ai",
-          message: "Sorry, something went wrong. Please try again.",
+          message: errorMessage,
         },
       ]);
     } finally {
