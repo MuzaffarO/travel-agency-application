@@ -48,13 +48,15 @@ class UsersControllerTest {
     private S3Client s3Client;
 
     @Mock
+    private S3Presigner s3Presigner;
+
+    @Mock
     private Context context;
 
     private UsersController usersController;
     private static final String AVATARS_BUCKET = "test-avatars-bucket";
     private static final String AWS_REGION = "eu-west-3";
     private static final String TEST_EMAIL = "user@test.com";
-    private static final S3Presigner s3Presigner;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +65,7 @@ class UsersControllerTest {
                 objectMapper,
                 validator,
                 s3Client,
+                s3Presigner,
                 AVATARS_BUCKET,
                 AWS_REGION
         );
@@ -125,16 +128,16 @@ class UsersControllerTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent();
         UpdateNameRequestDTO request = new UpdateNameRequestDTO();
-        request.firstName = "Jane";
-        request.lastName = "Smith";
+        request.setFirstName("Jane");
+        request.setLastName("Smith");
         String requestBody = "{}";
 
         event.setBody(requestBody);
 
         when(objectMapper.readValue(requestBody, UpdateNameRequestDTO.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
+        when(validator.validate(request)).thenReturn(Collections.emptySet());
         when(authService.updateUserName(TEST_EMAIL, request)).thenReturn(
-                new com.travelbackendapp.travelmanagement.model.api.response.UpdateNameResponseDTO("Name updated successfully", true));
+                new com.travelbackendapp.travelmanagement.model.api.response.UpdateNameResponseDTO("Your account has been updated successfully"));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -152,15 +155,15 @@ class UsersControllerTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent();
         ChangePasswordRequestDTO request = new ChangePasswordRequestDTO();
-        request.currentPassword = "OldPassword123!";
-        request.newPassword = "NewPassword123!";
+        request.setCurrentPassword("OldPassword123!");
+        request.setNewPassword("NewPassword123!");
         String requestBody = "{}";
 
         event.setBody(requestBody);
 
         when(objectMapper.readValue(requestBody, ChangePasswordRequestDTO.class)).thenReturn(request);
         when(validator.validate(any())).thenReturn(Collections.emptySet());
-        when(authService.changePassword(eq(TEST_EMAIL), eq(request.currentPassword), eq(request.newPassword)))
+        when(authService.changePassword(eq(TEST_EMAIL), eq(request.getCurrentPassword()), eq(request.getNewPassword())))
                 .thenReturn(new com.travelbackendapp.travelmanagement.model.api.response.UpdateProfileResponseDTO("Password updated successfully", true));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -170,7 +173,7 @@ class UsersControllerTest {
         // Then
         assertNotNull(response);
         assertEquals(200, response.getStatusCode());
-        verify(authService).changePassword(eq(TEST_EMAIL), eq(request.currentPassword), eq(request.newPassword));
+        verify(authService).changePassword(eq(TEST_EMAIL), eq(request.getCurrentPassword()), eq(request.getNewPassword()));
     }
 
     @Test
@@ -179,7 +182,7 @@ class UsersControllerTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent();
         UploadAvatarRequestDTO request = new UploadAvatarRequestDTO();
-        request.imageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        request.setImageBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
         String requestBody = "{}";
 
         event.setBody(requestBody);
@@ -188,10 +191,11 @@ class UsersControllerTest {
         String imageUrl = "https://test-bucket.s3.eu-west-3.amazonaws.com/users/user@test.com/avatar/20250101120000.png";
 
         when(objectMapper.readValue(requestBody, UploadAvatarRequestDTO.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
+        when(validator.validate(request)).thenReturn(Collections.emptySet());
         when(authService.getUserInfo(TEST_EMAIL)).thenReturn(existingUser);
-        doNothing().when(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-        when(authService.updateUserPicture(TEST_EMAIL, anyString()))
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .thenReturn(software.amazon.awssdk.services.s3.model.PutObjectResponse.builder().build());
+        when(authService.updateUserPicture(eq(TEST_EMAIL), anyString()))
                 .thenReturn(new com.travelbackendapp.travelmanagement.model.api.response.UpdateProfileResponseDTO("Avatar updated successfully", true));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -215,13 +219,7 @@ class UsersControllerTest {
 
         event.setBody(requestBody);
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        ConstraintViolation<UpdateNameRequestDTO> violation = mock(ConstraintViolation.class);
-        when(violation.getMessage()).thenReturn("First name is required");
-
         when(objectMapper.readValue(requestBody, UpdateNameRequestDTO.class)).thenReturn(request);
-        Set<ConstraintViolation<UpdateNameRequestDTO>> violations = Collections.singleton(violation);
-        when(validator.validate(any())).thenReturn((Set) violations);
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -239,7 +237,7 @@ class UsersControllerTest {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent();
         UploadAvatarRequestDTO request = new UploadAvatarRequestDTO();
-        request.imageBase64 = "invalid-base64";
+        request.setImageBase64("invalid-base64");
         String requestBody = "{}";
 
         event.setBody(requestBody);
@@ -254,7 +252,7 @@ class UsersControllerTest {
         // Then
         assertNotNull(response);
         assertEquals(400, response.getStatusCode());
-        verify(s3Client, never()).putObject(any(), any());
+        verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
 
     // Helper methods

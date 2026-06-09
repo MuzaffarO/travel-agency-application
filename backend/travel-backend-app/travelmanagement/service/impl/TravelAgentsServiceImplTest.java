@@ -66,9 +66,15 @@ class TravelAgentsServiceImplTest {
 
         event.setBody(requestBody);
 
+        TravelAgent admin = createAdmin();
         when(objectMapper.readValue(requestBody, CreateTravelAgentRequest.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
+        when(validator.validate(request)).thenReturn(Collections.emptySet());
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(null);
+
+        // Mock adminGetUser to throw UserNotFoundException (user doesn't exist yet)
+        when(cognitoClient.adminGetUser(any(AdminGetUserRequest.class)))
+                .thenThrow(UserNotFoundException.builder().build());
 
         AdminCreateUserResponse createResponse = AdminCreateUserResponse.builder()
                 .user(software.amazon.awssdk.services.cognitoidentityprovider.model.UserType.builder()
@@ -78,7 +84,7 @@ class TravelAgentsServiceImplTest {
         when(cognitoClient.adminCreateUser(ArgumentMatchers.<AdminCreateUserRequest>any())).thenReturn(createResponse);
         when(cognitoClient.adminSetUserPassword(any(AdminSetUserPasswordRequest.class)))
                 .thenReturn(AdminSetUserPasswordResponse.builder().build());
-        doNothing().when(travelAgentRepository).save(any(TravelAgent.class));
+        when(travelAgentRepository.save(any(TravelAgent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -119,9 +125,11 @@ class TravelAgentsServiceImplTest {
 
         event.setBody(requestBody);
 
+        TravelAgent admin = createAdmin();
         TravelAgent existingAgent = createTravelAgent();
         when(objectMapper.readValue(requestBody, CreateTravelAgentRequest.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
+        when(validator.validate(request)).thenReturn(Collections.emptySet());
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(existingAgent);
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -144,9 +152,17 @@ class TravelAgentsServiceImplTest {
 
         event.setBody(requestBody);
 
+        TravelAgent admin = createAdmin();
         when(objectMapper.readValue(requestBody, CreateTravelAgentRequest.class)).thenReturn(request);
-        when(validator.validate(any())).thenReturn(Collections.emptySet());
+        when(validator.validate(request)).thenReturn(Collections.emptySet());
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(null);
+        
+        // Mock adminGetUser to throw UserNotFoundException (user doesn't exist in DB)
+        when(cognitoClient.adminGetUser(any(AdminGetUserRequest.class)))
+                .thenThrow(UserNotFoundException.builder().build());
+        
+        // Mock adminCreateUser to throw UsernameExistsException
         when(cognitoClient.adminCreateUser(ArgumentMatchers.<AdminCreateUserRequest>any()))
                 .thenThrow(UsernameExistsException.builder().build());
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -164,10 +180,12 @@ class TravelAgentsServiceImplTest {
     void shouldListTravelAgentsSuccessfully() throws Exception {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent(ADMIN_EMAIL, "ADMIN");
+        TravelAgent admin = createAdmin();
         TravelAgent agent1 = createTravelAgent();
         TravelAgent agent2 = createTravelAgent();
         agent2.setEmail("agent2@test.com");
 
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findAll()).thenReturn(Arrays.asList(agent1, agent2));
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -201,8 +219,10 @@ class TravelAgentsServiceImplTest {
     void shouldDeleteTravelAgentSuccessfully() throws Exception {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent(ADMIN_EMAIL, "ADMIN");
+        TravelAgent admin = createAdmin();
         TravelAgent existingAgent = createTravelAgent();
 
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(existingAgent);
         when(cognitoClient.adminDeleteUser(ArgumentMatchers.<AdminDeleteUserRequest>any()))
                 .thenReturn(AdminDeleteUserResponse.builder().build());
@@ -224,8 +244,10 @@ class TravelAgentsServiceImplTest {
     void shouldHandleUserNotFoundExceptionWhenDeleting() throws Exception {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent(ADMIN_EMAIL, "ADMIN");
+        TravelAgent admin = createAdmin();
         TravelAgent existingAgent = createTravelAgent();
 
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(existingAgent);
         when(cognitoClient.adminDeleteUser(ArgumentMatchers.<AdminDeleteUserRequest>any()))
                 .thenThrow(UserNotFoundException.builder().build());
@@ -246,7 +268,9 @@ class TravelAgentsServiceImplTest {
     void shouldReturn404WhenDeletingNonExistentAgent() throws Exception {
         // Given
         APIGatewayProxyRequestEvent event = createAuthenticatedEvent(ADMIN_EMAIL, "ADMIN");
+        TravelAgent admin = createAdmin();
 
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(travelAgentRepository.findByEmail(AGENT_EMAIL)).thenReturn(null);
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
@@ -269,13 +293,15 @@ class TravelAgentsServiceImplTest {
 
         event.setBody(requestBody);
 
+        TravelAgent admin = createAdmin();
         @SuppressWarnings({"unchecked", "rawtypes"})
         ConstraintViolation<CreateTravelAgentRequest> violation = mock(ConstraintViolation.class);
         when(violation.getMessage()).thenReturn("Email is required");
 
         when(objectMapper.readValue(requestBody, CreateTravelAgentRequest.class)).thenReturn(request);
+        when(travelAgentRepository.findByEmail(ADMIN_EMAIL)).thenReturn(admin);
         Set<ConstraintViolation<CreateTravelAgentRequest>> violations = Collections.singleton(violation);
-        when(validator.validate(any())).thenReturn((Set) violations);
+        when(validator.validate(request)).thenReturn((Set) violations);
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
@@ -323,6 +349,17 @@ class TravelAgentsServiceImplTest {
         agent.setCreatedAt("2025-01-01T00:00:00Z");
         agent.setCreatedBy(ADMIN_EMAIL);
         return agent;
+    }
+
+    private TravelAgent createAdmin() {
+        TravelAgent admin = new TravelAgent();
+        admin.setEmail(ADMIN_EMAIL);
+        admin.setFirstName("Admin");
+        admin.setLastName("Test");
+        admin.setRole("ADMIN");
+        admin.setCreatedAt("2025-01-01T00:00:00Z");
+        admin.setCreatedBy("system");
+        return admin;
     }
 }
 
