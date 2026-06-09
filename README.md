@@ -1,6 +1,6 @@
-# 🌍 Travel Agency App — Team 3 (Run 15)
+# 🌍 Travel Agency App
 
-This repository contains the **Travel Agency Management Application**, developed as part of **EPAM Project Education (Run 15)**.  
+This repository contains the **Travel Agency Management Application**.  
 The application is built using a **serverless architecture on AWS** with Java (backend), JavaScript (frontend), and QA automation.
 
 ---
@@ -32,3 +32,31 @@ We follow **Git Flow** to ensure clean development:
 No direct pushes are allowed to `master` or `develop`.
 
 ---
+
+## Spring Boot Migration (Java 21 + PostgreSQL)
+
+A new backend module is available at `backend/travel-springboot-app` as the migration target from AWS Lambda/Syndicate.
+
+### Included in the new backend
+
+- Spring Boot 3 application on Java 21
+- PostgreSQL persistence via Spring Data JPA
+- Flyway schema migration (`V1__init_schema.sql`)
+- JWT-based auth (`/auth/sign-up`, `/auth/sign-in`)
+- Core migrated endpoints for tours, bookings, users, and admin travel-agent management
+
+### Run the migrated backend
+
+```powershell
+cd D:\Projects\travel-agency-application\backend\travel-springboot-app
+mvn spring-boot:run
+```
+
+### Database and auth environment variables
+
+- `DB_URL`
+- `DB_USER`
+- `DB_PASSWORD`
+- `JWT_SECRET`
+
+For module-level details, see `backend/travel-springboot-app/README.md`.
