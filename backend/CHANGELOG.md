@@ -1,7 +1,7 @@
 # Changelog
 All notable API changes for the Travel Management service.
 
-## [Sprint 2] - 2025-10-03
+## [Sprint 2]
 
 ### Added
 - **Bookings / Documents (User Story 7, optional)**
@@ -49,7 +49,7 @@ All notable API changes for the Travel Management service.
 
 ---
 
-## [Sprint 1] - 2025-09-18
+## [Sprint 1]
 
 ### Added
 - **Tours**

@@ -1,7 +1,6 @@
 # Travel Agency - QA Automation
 
 Sprint 2 - MVP Extension (Complete API Coverage)  
-Team: Team 3 - Run 15  
 **Status:** ✅ **100% API ENDPOINT COVERAGE ACHIEVED**
 
 ## Overview

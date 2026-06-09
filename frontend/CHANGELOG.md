@@ -2,7 +2,7 @@
 
 All notable UI/UX and frontend changes for the Travel Management service.
 
-## [Sprint 2] - 2025-10-03
+## [Sprint 2]
 
 ### Added
 
@@ -88,7 +88,7 @@ All notable UI/UX and frontend changes for the Travel Management service.
 
 ---
 
-## [Sprint 1] - 2025-09-19
+## [Sprint 1]
 
 ### Added
 
